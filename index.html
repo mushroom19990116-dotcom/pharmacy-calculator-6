@@ -1,0 +1,116 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>慢籤領藥時間計算機</title>
+    <!-- 引入 Tailwind CSS 讓介面更美觀 -->
+    <script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body class="bg-slate-50 min-h-screen flex items-center justify-center p-4">
+
+    <div class="bg-white w-full max-w-md rounded-2xl shadow-xl p-6 md:p-8">
+        <div class="text-center mb-6">
+            <h1 class="text-2xl font-bold text-slate-800">🏥 慢性病連續處方箋</h1>
+            <p class="text-slate-500 text-sm mt-1">領藥時間試算工具</p>
+        </div>
+
+        <form id="calcForm" class="space-y-4">
+            <!-- 上次領藥日期 -->
+            <div>
+                <label for="lastDate" class="block text-sm font-medium text-slate-700 mb-1">上次領藥日期（或處方箋開立日期）</label>
+                <input type="date" id="lastDate" required
+                    class="w-full px-4 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:outline-none">
+            </div>
+
+            <!-- 給藥天數 -->
+            <div>
+                <label for="days" class="block text-sm font-medium text-slate-700 mb-1">本次給藥天數</label>
+                <select id="days" class="w-full px-4 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:outline-none">
+                    <option value="30">30 天</option>
+                    <option value="28">28 天</option>
+                    <option value="90">90 天</option>
+                </select>
+            </div>
+
+            <!-- 計算按鈕 -->
+            <button type="submit"
+                class="w-full bg-blue-600 hover:bg-blue-700 text-white font-medium py-2.5 rounded-lg transition duration-200 shadow-md">
+                計算領藥日期
+            </button>
+        </form>
+
+        <!-- 結果顯示區 -->
+        <div id="resultCard" class="hidden mt-6 p-4 bg-blue-50 border border-blue-100 rounded-xl space-y-3">
+            <h2 class="font-bold text-blue-900 border-b border-blue-200 pb-2">📊 計算結果</h2>
+            
+            <div class="flex justify-between items-center text-sm">
+                <span class="text-slate-600">藥物用完日期：</span>
+                <span id="finishDate" class="font-semibold text-slate-800">-</span>
+            </div>
+
+            <div class="flex justify-between items-center text-sm">
+                <span class="text-slate-600">最早可領藥日期（提前6天）：</span>
+                <span id="earlyDate" class="font-bold text-blue-600 text-base">-</span>
+            </div>
+
+            <p id="statusNotice" class="text-xs text-slate-500 mt-2 bg-white p-2 rounded border border-blue-100"></p>
+        </div>
+    </div>
+
+    <script>
+        document.getElementById('calcForm').addEventListener('submit', function(e) {
+            e.preventDefault();
+
+            const lastDateStr = document.getElementById('lastDate').value;
+            const days = parseInt(document.getElementById('days').value);
+
+            if (!lastDateStr) return;
+
+            // 建立日期物件
+            let lastDate = new Date(lastDateStr);
+
+            // 1. 計算藥物吃完的日期 (上次領藥日期 + 給藥天數)
+            let finishDate = new Date(lastDate);
+            finishDate.setDate(lastDate.getDate() + days);
+
+            // 2. 計算最早可領藥日期 (藥物吃完日期往前推 6 天)
+            let earlyDate = new Date(finishDate);
+            earlyDate.setDate(finishDate.getDate() - 6);
+
+            // 格式化日期輸出 (YYYY-MM-DD)
+            const formatDate = (d) => {
+                const year = d.getFullYear();
+                const month = String(d.getMonth() + 1).padStart(2, '0');
+                const day = String(d.getDate()).padStart(2, '0');
+                const weekdays = ['日', '一', '二', '三', '四', '五', '六'];
+                const weekday = weekdays[d.getDay()];
+                return `${year}-${month}-${day} (週${weekday})`;
+            };
+
+            // 顯示結果
+            document.getElementById('finishDate').textContent = formatDate(finishDate);
+            document.getElementById('earlyDate').textContent = formatDate(earlyDate);
+
+            // 判斷目前是否已經可以領藥
+            const today = new Date();
+            today.setHours(0, 0, 0, 0);
+            
+            const noticeEl = document.getElementById('statusNotice');
+            if (today >= earlyDate) {
+                noticeEl.innerHTML = '🟢 <span class="text-green-600 font-bold">目前已經可以回診或到藥局領藥囉！</span>';
+            } else {
+                const diffTime = earlyDate - today;
+                const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+                noticeEl.innerHTML = `⏳ 距離最早可領藥日還有 <span class="font-bold text-blue-600">${diffDays}</span> 天。`;
+            }
+
+            // 顯示結果區塊
+            document.getElementById('resultCard').classList.remove('hidden');
+        });
+
+        // 預設將日期欄位帶入今天
+        document.getElementById('lastDate').valueAsDate = new Date();
+    </script>
+</body>
+</html>
